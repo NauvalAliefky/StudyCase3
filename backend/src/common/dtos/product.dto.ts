@@ -1,18 +1,14 @@
 import { IsString, IsNumber, IsBoolean, IsOptional } from 'class-validator';
-import { Transform } from 'class-transformer';
-
-export default class CreateProductDto {
+export class CreateProductDto {
   @IsString()
   name: string;
 
   @IsString()
   category: string;
 
-  @Transform(({  value }) => parseFloat(value))
   @IsNumber()
   price: number;
 
-  @Transform(({ value }) => parseInt(value, 10))
   @IsNumber()
   stockQuantity: number;
 
@@ -37,12 +33,10 @@ export class UpdateProductDto {
   category?: string;
 
   @IsOptional()
-  @Transform(({ value }) => parseFloat(value))
   @IsNumber()
   price?: number;
 
   @IsOptional()
-  @Transform(({ value }) => parseInt(value, 10))
   @IsNumber()
   stockQuantity?: number;
 
