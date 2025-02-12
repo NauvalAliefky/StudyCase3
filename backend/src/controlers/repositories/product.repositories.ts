@@ -4,28 +4,28 @@ import {
   CreateProductDto,
   UpdateProductDto,
 } from '../../common/dtos/product.dto';
-
+import { Product } from '@prisma/client';
 @Injectable()
-export class ProductsService {
+export class ProductRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  async findAll() {
+  async findAll(): Promise<Product[]> {
     return this.prisma.product.findMany();
   }
 
-  async findOne(id: string) {
+  async findOne(id: string): Promise<Product | null> {
     return this.prisma.product.findUnique({ where: { id } });
   }
 
-  async create(data: CreateProductDto) {
+  async create(data: CreateProductDto): Promise<Product> {
     return this.prisma.product.create({ data });
   }
 
-  async update(id: string, data: UpdateProductDto) {
+  async update(id: string, data: UpdateProductDto): Promise<Product> {
     return this.prisma.product.update({ where: { id }, data });
   }
 
-  async remove(id: string) {
+  async remove(id: string): Promise<Product> {
     return this.prisma.product.delete({ where: { id } });
   }
 }
