@@ -1,101 +1,233 @@
-import Image from "next/image";
+"use client";
+import React, { useState } from "react";
+import { Button, Space, Table, Tag, Modal, Form, Input, message, Select, Menu, notification } from "antd";
+import type { MenuProps, TableProps } from "antd";
+import '@ant-design/v5-patch-for-react-19';
+import "@/styles/globals.css";
 
-export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+export default function Page() {
+  interface DataType {
+    key: string;
+    product: string;
+    category: string;
+    price: string;
+    stock: string;
+    description: string;
+    status: string;
+  }
+  const handleSaveProduct = async () => {
+    try {
+      const values = await form.validateFields();
+  
+      if (isEditMode && editingProduct) {
+        await fetch(`http://localhost:3000/products/${editingProduct.key}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(values),
+        });
+        message.success("Product updated successfully!");
+        setData((prevData) =>
+          prevData.map((item) =>
+            item.key === editingProduct.key ? { ...values, key: item.key } : item
+          )
+        );
+      } else {
+        const response = await fetch("http://localhost:3000/products", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(values),
+        });
+  
+        const newProduct = await response.json();
+        setData([...data, { ...newProduct, key: newProduct.id.toString() }]);
+        message.success("Product added successfully!");
+      }
+  
+      setIsModalOpen(false);
+      form.resetFields();
+    } catch (error) {
+      console.error("Error:", error);
+      message.error("Failed to save product.");
+    }
+  };
+  
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+  const [data, setData] = useState<DataType[]>([
+    {
+      key: "1",
+      product: "Laptop",
+      category: "Electronics",
+      price: "$1000",
+      stock: "20",
+      description: "High-performance laptop",
+      status: "Available",
+    },
+  ]);
+
+  const [deletedData, setDeletedData] = useState<DataType[]>([]);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<DataType | null>(null);
+  const [currentTab, setCurrentTab] = useState("products");
+
+  const [form] = Form.useForm();
+
+  const showModal = () => {
+    setIsEditMode(false);
+    setIsModalOpen(true);
+    form.resetFields();
+  };
+
+  const showEditModal = (record: DataType) => {
+    setIsEditMode(true);
+    setEditingProduct(record);
+    setIsModalOpen(true);
+    form.setFieldsValue(record);
+  };
+
+  const handleCancel = () => {
+    setIsModalOpen(false);
+    form.resetFields();
+  };
+
+
+  const handleDelete = async (key: string) => {
+    Modal.confirm({
+      title: "Are you sure?",
+      content: "Do you really want to delete this product?",
+      okText: "Yes",
+      cancelText: "No",
+      onOk: async () => {
+        try {
+          await fetch(`http://localhost:3000/products/${key}`, { method: "DELETE" });
+          setData((prevData) => prevData.filter((item) => item.key !== key));
+          message.success("Product deleted successfully!");
+        } catch (error) {
+          console.error("Error deleting product:", error);
+          message.error("Failed to delete product.");
+        }
+      },
+    });
+  };
+  
+
+  const handleRestore = (key: string) => {
+    const restoredItem = deletedData.find((item) => item.key === key);
+    if (restoredItem) {
+      setData([...data, restoredItem]); // Kembalikan ke daftar utama
+      setDeletedData((prevDeletedData) =>
+        prevDeletedData.filter((item) => item.key !== key)
+      );
+      message.success("Product restored successfully!");
+    }
+  };
+
+  const columns: TableProps<DataType>["columns"] = [
+    { title: "Product", dataIndex: "product", key: "product" },
+    { title: "Category", dataIndex: "category", key: "category" },
+    { title: "Price", dataIndex: "price", key: "price" },
+    { title: "Stock", dataIndex: "stock", key: "stock" },
+    { title: "Description", dataIndex: "description", key: "description" },
+    {
+      title: "Status",
+      key: "status",
+      dataIndex: "status",
+      render: (status) => (
+        <Tag color={status === "Available" ? "green" : "volcano"}>{status.toUpperCase()}</Tag>
+      ),
+    },
+    {
+      title: "Action",
+      key: "action",
+      render: (_, record) => (
+        <Space size="middle">
+          <a onClick={() => showEditModal(record)}>Edit</a>
+          <a style={{ color: "red" }} onClick={() => handleDelete(record.key)}>Delete</a>
+        </Space>
+      ),
+    },
+  ];
+
+  const deletedColumns: TableProps<DataType>["columns"] = [
+    ...columns.filter((col) => col.key !== "action"),
+    {
+      title: "Action",
+      key: "action",
+      render: (_, record) => (
+        <Space size="middle">
+          <a style={{ color: "blue" }} onClick={() => handleRestore(record.key)}>Restore</a>
+        </Space>
+      ),
+    },
+  ];
+
+  function Navbar() {
+    const [currentTab, setCurrentTab] = useState("products");
+
+    const handleMenuClick: MenuProps["onClick"] = (e) => {
+      setCurrentTab(e.key);
+    };
+
+    const menuItems: MenuProps["items"] = [
+      { label: "Product", key: "products" },
+      { label: "Product Deleted", key: "deleted" },
+      {
+        label: <Button type="primary">Login</Button>,
+        key: "login",
+        style: { marginLeft: "auto" },
+      },
+    ];
+
+    return (
+      <div>
+        <Menu mode="horizontal" selectedKeys={[currentTab]} onClick={handleMenuClick} items={menuItems} />
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "40px" }}>
+          {currentTab === "products" && (
+            <>
+              <div style={{ width: "100%", display: "flex", justifyContent: "space-between", marginBottom: "20px" }}>
+                <h1 className="title" style={{ alignItems: "center" }}>Product Management</h1>
+                <Button type="primary" onClick={showModal}>+ Add Product</Button>
+              </div>
+              <Table columns={columns} dataSource={data} style={{ width: "100%" }} />
+            </>
+          )}
+
+          {currentTab === "deleted" && (
+            <>
+              <h1 className="title">Deleted Products</h1>
+              <Table columns={deletedColumns} dataSource={deletedData} style={{ width: "100%" }} />
+            </>
+          )}
+
+          <Modal title={isEditMode ? "Edit Product" : "Add New Product"} open={isModalOpen} onCancel={handleCancel} onOk={handleSaveProduct}>
+            <Form form={form} layout="vertical">
+              <Form.Item name="product" label="Product Name" rules={[{ required: true, message: "Please enter product name" }]}>
+                <Input />
+              </Form.Item>
+              <Form.Item name="category" label="Category">
+                <Input />
+              </Form.Item>
+              <Form.Item name="price" label="Price" rules={[{ required: true, message: "Please enter price" }]}>
+                <Input />
+              </Form.Item>
+              <Form.Item name="stock" label="Stock" rules={[{ required: true, message: "Please enter stock" }]}>
+                <Input />
+              </Form.Item>
+              <Form.Item name="description" label="Description">
+                <Input.TextArea />
+              </Form.Item>
+              <Form.Item name="status" label="Status" rules={[{ required: true, message: "Please select status" }]}>
+                <Select placeholder="Select status">
+                  <Select.Option value="Available">Available</Select.Option>
+                  <Select.Option value="Out Of Stock">Out Of Stock</Select.Option>
+                </Select>
+              </Form.Item>
+            </Form>
+          </Modal>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
-  );
-}
+      </div>
+    );
+  }
+
+  return <Navbar />;
+};
